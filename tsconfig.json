@@ -1,0 +1,10 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "checkJs": true,
+        "allowJs": true,
+        "esModuleInterop": true,
+        "maxNodeModuleJsDepth": 2,
+        "lib": ["es2018"]
+    }
+}
