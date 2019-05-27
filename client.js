@@ -247,7 +247,7 @@ module.exports = ({ config, logger = NOOP }) => {
         country: string
         state: string
         postalCode: string
-        phone: string
+		phone: string
 		email: string
         affid?: string
         sid?: string
@@ -269,7 +269,7 @@ module.exports = ({ config, logger = NOOP }) => {
         creditCardType: string
         creditCardNumber: string
         expMonth: number
-        expYear: number
+		expYear: number
 		shippingMethodId: number
      * }} PaymentData
 
