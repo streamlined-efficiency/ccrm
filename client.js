@@ -227,7 +227,7 @@ module.exports = ({ config, logger = NOOP }) => {
 		productId: number
 		ip?: string
 	 * }} PartialData
-	 * @param {PartialData} partialPayload 
+	 * @param {PartialData} partialPayload
 	 */
 
 	const newPartial = (partialPayload) => {
@@ -255,7 +255,7 @@ module.exports = ({ config, logger = NOOP }) => {
      * }} CustomerData
      *
      * @typedef {Array<{ quantity: number | string, price: number | string, productId: number | string}>} ProductData
-     * 
+     *
      * @typedef {{
         firstName: string
         lastName: string
@@ -266,16 +266,16 @@ module.exports = ({ config, logger = NOOP }) => {
         state: string
         postalCode: string
         cvv: string
-        creditCardType: string
+        creditCardType: 'americanExpress' | 'discover' | 'mastercard' | 'visa' | 'other'
         creditCardNumber: string
         expMonth: number
 		expYear: number
 		shippingMethodId: number
      * }} PaymentData
 
-     * @param {CustomerData} customer 
-     * @param {ProductData} products 
-     * @param {PaymentData} payment 
+     * @param {CustomerData} customer
+     * @param {ProductData} products
+     * @param {PaymentData} payment
      */
 	const newOrder = (customer, products, payment) => {
 		const endpoint = 'orders';
@@ -291,10 +291,10 @@ module.exports = ({ config, logger = NOOP }) => {
 	};
 
 	/**
-	 * 
-	 * @param {string | number} partialId 
-	 * @param {ProductData} products 
-	 * @param {PaymentData} payment 
+	 *
+	 * @param {string | number} partialId
+	 * @param {ProductData} products
+	 * @param {PaymentData} payment
 	 */
 	const newOrderOnPartial = (partialId, products, payment) => {
 		const endpoint = `partials/order/${partialId}`;
@@ -308,9 +308,9 @@ module.exports = ({ config, logger = NOOP }) => {
 	};
 
 	/**
-	 * 
-	 * @param {string | number} orderId 
-	 * @param {ProductData} upsell 
+	 *
+	 * @param {string | number} orderId
+	 * @param {ProductData} upsell
 	 */
 	const upsellOnOrder = (orderId, upsell) => {
 		const endpoint = `orders/upsell/${orderId}`;

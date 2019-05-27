@@ -1,6 +1,6 @@
 {
   "name": "ccrm",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Node.js library for Continuity CRM API integration",
   "main": "client.js",
   "scripts": {
