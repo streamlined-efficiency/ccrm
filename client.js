@@ -20,7 +20,7 @@ const NOOP = function () { /* do nothing */ };
  *    info?: string
  * }} Log
  * @typedef {function(Log): void} Logger
- * @typedef {{ url: string, apiKey: string }} Config
+ * @typedef {{ url?: string, apiKey: string }} Config
  * @typedef {{ backupResponse: string } & FetchError } CustomFetchError
  */
 
@@ -93,7 +93,7 @@ function transformKeys(obj, transform) {
 }
 
 /**
- * @param {{ config: Config, logger: Logger }} module.exports.$0
+ * @param {{ config: Config, logger?: Logger }} module.exports.$0
  */
 module.exports = ({ config, logger = NOOP }) => {
 	const { url = 'https://app.continuitycrm.com/api/', apiKey } = config;
@@ -167,11 +167,11 @@ module.exports = ({ config, logger = NOOP }) => {
 		});
 	};
 
-	const getJSON = (endpoint, data) => {
+	const getJSON = (endpoint, data = {}, method = 'POST') => {
 		const dataBody = JSON.stringify(data);
 		const opts = {
-			method: 'POST',
-			body: dataBody,
+			method,
+			body: method.toUpperCase() === 'POST' ? dataBody : undefined,
 			headers: HEADERS,
 		};
 
@@ -320,5 +320,11 @@ module.exports = ({ config, logger = NOOP }) => {
 		return getJSON(endpoint, upsellData);
 	};
 
-	return { newPartial, newOrder, newOrderOnPartial, upsellOnOrder };
+	const getProvinces = (country) => {
+		const endpoint = `orders/getProvinces/${country}`;
+
+		return getJSON(endpoint, null, 'GET');
+	};
+
+	return { newPartial, newOrder, newOrderOnPartial, upsellOnOrder, getProvinces };
 };
