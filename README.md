@@ -87,7 +87,7 @@ PaymentData {
     expMonth: number
     expYear: number
     shippingMethodId: number
-} PaymentData
+}
 ```
 
 and returns a Promise that resolves to the CRM response data (but camel-cased, for your convenience). See example response data:
@@ -124,5 +124,21 @@ and returns a Promise that resolves to the CRM response data (but camel-cased, f
 
 #### *`upsellOnOrder(orderId: string | number, products: ProductData) => Promise<OrderResponse>`*
 `upsellOnOrder` is similar to the previous functions, but takes only an existing `orderId` plus a new `ProductData` array. No customer data or payment data is needed, as the data saved from the previous order is reused. The response data is also nearly identical to the `newOrder` response.
+
+## Logger
+The exported function also takes an optional logger function. This is called throughout the req->res cycle and hands back various data points for you to log as you please. The shape of the object returned via this callback is:
+```ts
+{
+	endpoint: string,
+	requestBody: object,
+	responseBody: object,
+	latency: number,
+	httpResponseCode: number,
+	info?: string
+}
+```
+
+## Debugging
+`ccrm` uses the `debug` library. Run your application with the env var `DEBUG=ccrm` to get debugging information related to transport and raw responses.
 
 
