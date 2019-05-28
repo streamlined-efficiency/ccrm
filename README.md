@@ -12,7 +12,11 @@ The export of this package is a function that takes a single argument of an obje
 ```js
 const CCRM = require('ccrm');
 
-const ccrm = CCRM({ apiKey: '11111-1111-1111-1111' });
+const config = {
+	apiKey: '11111-1111-1111-1111',
+};
+
+const ccrm = CCRM({ config });
 ```
 
 `ccrm` is now a configured instance of the transport client.
