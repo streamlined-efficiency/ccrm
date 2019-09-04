@@ -5,6 +5,7 @@ const FetchError = require('node-fetch').FetchError;
 const Promise = require('bluebird');
 const camelcaseKeys = require('camelcase-keys');
 const pascalcaseKeys = require('pascalcase-keys');
+const qs = require('querystring');
 const { startTimer, stopTimer } = require('./timer');
 const { CRMError, OperationalError } = require('./errors');
 
@@ -23,6 +24,56 @@ const NOOP = function () { /* do nothing */ };
  * @typedef {{ url?: string, apiKey: string }} Config
  * @typedef {{ backupResponse: string } & FetchError } CustomFetchError
  */
+
+/**
+  * @typedef {{
+		orderId: number,
+		created: Date,
+		isTest: boolean,
+		isPrepaid: boolean,
+		shipped: boolean,
+		customerId: number,
+		shippingFirstName: string
+		shippingLastName: string
+		shippingAddress1: string
+		shippingAddress2: string | null,
+		shippingCity: string
+		shippingProvince: string
+		shippingPostalCode: string
+		shippingCountry: string
+		phone: string
+		email: string
+		billingFirstName: string
+		billingLastName: string
+		billingAddress1: string
+		billingAddress2: string | null,
+		billingCity: string
+		billingProvince: string
+		billingPostalCode: string
+		billingCountry: string
+		shippingMethodId: number
+		processorId: number | null,
+		affiliateId: string,
+		subId: string,
+		chargebackDate: Date | null,
+		parentId: number | null,
+		status: number,
+		ipAddress: string,
+		subTotal: number,
+		tax: number,
+		shippingPrice: number,
+		total: number,
+		depth: number,
+		orderProducts: Array<{
+			productId: number
+			quantity: number
+			price: number
+			productName: string
+			currencyInIso4217Format: string
+			currency: string
+		}>
+	}} OrderResponse
+  */
 
 const partialDataTransform = {
 	firstName: 'FirstName',
@@ -75,7 +126,7 @@ const paymentDataTransform = {
 };
 
 const paymentTypeMap = {
-	'americanExpress': 1,
+	'amex': 1,
 	'discover': 2,
 	'mastercard': 3,
 	'visa': 4,
@@ -168,19 +219,20 @@ module.exports = ({ config, logger = NOOP }) => {
 	};
 
 	const getJSON = (endpoint, data = {}, method = 'POST') => {
-		const dataBody = JSON.stringify(data);
 		const opts = {
 			method,
-			body: method.toUpperCase() === 'POST' ? dataBody : undefined,
+			body: method.toUpperCase() === 'POST' ? JSON.stringify(data) : undefined,
 			headers: HEADERS,
 		};
+
+		const queryparams = method.toUpperCase() === 'GET' ? `?${qs.stringify(data)}` : '';
 
 		debug('request: ', data, opts);
 
 		const ccrmTimer = startTimer();
 		return Promise.try(() => {
 			// @ts-ignore checkJs is confused about requiring a cjs module with esm defs
-			return fetch(`${url}${endpoint}`, opts);
+			return fetch(`${url}${endpoint}${queryparams}`, opts);
 		}).then((res) => {
 			return checkStatus(res, ccrmTimer, { data, endpoint });
 		}).then((res) => {
@@ -206,7 +258,19 @@ module.exports = ({ config, logger = NOOP }) => {
 					.then(() => { throw err; });
 			});
 		}).then((orderData) => {
-			return camelcaseKeys(orderData);
+			if (typeof orderData === 'object') {
+				if (Array.isArray(orderData)) {
+					if (typeof orderData[0] === 'object') {
+						return orderData.map(order => camelcaseKeys(order, {deep: true}));
+					} else {
+						return orderData;
+					}
+				} else {
+					return camelcaseKeys(orderData, {deep: true});
+				}
+			} else {
+				return orderData;
+			}
 		});
 	};
 
@@ -320,11 +384,63 @@ module.exports = ({ config, logger = NOOP }) => {
 		return getJSON(endpoint, upsellData);
 	};
 
+	/**
+	 * @param {{
+		fromDate: Date
+		toDate: Date
+		status?: number
+		productId?: number
+		orderId?: number
+		affiliateId?: string
+		customerId?: number
+		shipped?: boolean
+		address?: string
+		address2?: string
+		firstName?: string
+		lastName?: string
+		subId?: string
+		email?: string
+		city?: string
+		zip?: string
+		phone?: string
+		state?: string
+		country?: string
+		transactionId?: string
+		rma?: string
+		ip?: string
+		depth?: number
+		bin?: number,
+		lastFour: number,
+		orderView?: boolean
+	 * }} options
+	 * @returns {Promise<OrderResponse[]>}
+	 */
+	const findOrder = (options) => {
+		const endpoint = 'orders/find';
+		return getJSON(endpoint, {
+			...options,
+			depth: 0,
+			toDate: options.toDate.toISOString(),
+			fromDate: options.fromDate.toISOString(),
+		}, 'GET');
+	};
+
+	const getOrder = (orderId) => {
+		const endpoint = `orders/${orderId}`;
+		return getJSON(endpoint, null, 'GET');
+	};
+
 	const getProvinces = (country) => {
 		const endpoint = `orders/getProvinces/${country}`;
 
 		return getJSON(endpoint, null, 'GET');
 	};
 
-	return { newPartial, newOrder, newOrderOnPartial, upsellOnOrder, getProvinces };
+	const getTaxForProduct = (productId, shippingCountry) => {
+		const endpoint = 'products/calculateTaxForProduct';
+
+		return getJSON(endpoint, { ProductId: productId, ShippingCountry: shippingCountry.toUpperCase() }, 'GET');
+	};
+
+	return { newPartial, newOrder, newOrderOnPartial, upsellOnOrder, findOrder, getOrder, getProvinces, getTaxForProduct };
 };

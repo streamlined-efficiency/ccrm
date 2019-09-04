@@ -82,7 +82,7 @@ PaymentData {
     state: string
     postalCode: string
     cvv: string
-    creditCardType: 'americanExpress' | 'discover' | 'mastercard' | 'visa' | 'other'
+    creditCardType: 'amex' | 'discover' | 'mastercard' | 'visa' | 'other'
     creditCardNumber: string
     expMonth: number
     expYear: number
