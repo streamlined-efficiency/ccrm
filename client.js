@@ -318,7 +318,13 @@ module.exports = ({ config, logger = NOOP }) => {
         ip?: string
      * }} CustomerData
      *
-     * @typedef {Array<{ quantity: number | string, price: number | string, productId: number | string}>} ProductData
+     * @typedef { Array<{
+		productId: number | string
+		quantity: number | string
+		price?: number | string
+		rebillDiscount?: number | string
+		discountCycleCount?: number | string
+	 * }>} ProductData
      *
      * @typedef {{
         firstName: string
