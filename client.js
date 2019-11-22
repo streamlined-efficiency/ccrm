@@ -301,6 +301,15 @@ module.exports = ({ config, logger = NOOP }) => {
 		return getJSON(endpoint, partialData);
 	};
 
+	function calculateRebillDiscount(product) {
+		const { promoPrice, ...newProduct } = product;
+
+		newProduct.rebillDiscount = (Math.ceil(newProduct.price * 100) - Math.ceil(promoPrice * 100)) / 100;
+		newProduct.discountCycleCount = newProduct.discountCycleCount || 1;
+
+		return newProduct;
+	}
+
 	/**
      * @typedef {{
         firstName: string
@@ -322,6 +331,7 @@ module.exports = ({ config, logger = NOOP }) => {
 		productId: number | string
 		quantity: number | string
 		price?: number | string
+		promoPrice?: number | string
 		rebillDiscount?: number | string
 		discountCycleCount?: number | string
 	 * }>} ProductData
@@ -350,10 +360,18 @@ module.exports = ({ config, logger = NOOP }) => {
 	const newOrder = (customer, products, payment) => {
 		const endpoint = 'orders';
 
+		const transformedProducts = products.map((product) => {
+			if (product.promoPrice && !product.rebillDiscount) {
+				return calculateRebillDiscount(product);
+			} else {
+				return product;
+			}
+		});
+
 		const customerData = transformKeys(customer, customerDataTransform);
 		const paymentData = {
 			...transformKeys(payment, paymentDataTransform),
-			OrderProducts: products.map(pascalcaseKeys),
+			OrderProducts: transformedProducts.map(pascalcaseKeys),
 			PaymentType: paymentTypeMap[payment.creditCardType]
 		};
 
