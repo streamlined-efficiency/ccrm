@@ -454,6 +454,19 @@ module.exports = ({ config, logger = NOOP }) => {
 		return getJSON(endpoint, null, 'GET');
 	};
 
+	/**
+	 * @typedef {{
+	 * 	id: number
+	 * 	name: string
+	 * 	provinceAbbreviation: string
+	 * 	countryAbbreviation: string
+	 * }} Subdivision
+	 */
+	/**
+	 * @param {string} country
+	 * @returns {Promise<Subdivision[]>}
+	 */
+
 	const getProvinces = (country) => {
 		const endpoint = `orders/getProvinces/${country}`;
 

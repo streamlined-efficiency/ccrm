@@ -67,9 +67,12 @@ CustomerData {
 }
 
 ProductData Array<{
-    quantity: number | string,
-    price: number | string,
-    productId: number | string
+    quantity: number | string
+    price: number | string
+	productId: number | string
+	promoPrice?: number | string
+	rebillDiscount?: number | string
+	discountCycleCount?: number | string
 }>
 
 PaymentData {
@@ -90,7 +93,7 @@ PaymentData {
 }
 ```
 
-and returns a Promise that resolves to the CRM response data (but camel-cased, for your convenience). See example response data:
+Note that if a product includes `promoPrice` *without* the `rebillDiscount` and/or `discountCycleCount` properties, they will be populated for you. This function returns a Promise that resolves to the CRM response data (but camel-cased, for your convenience). See example response data:
 
 ```json
 {
@@ -124,6 +127,58 @@ and returns a Promise that resolves to the CRM response data (but camel-cased, f
 
 #### *`upsellOnOrder(orderId: string | number, products: ProductData) => Promise<OrderResponse>`*
 `upsellOnOrder` is similar to the previous functions, but takes only an existing `orderId` plus a new `ProductData` array. No customer data or payment data is needed, as the data saved from the previous order is reused. The response data is also nearly identical to the `newOrder` response.
+
+### *`findOrder(options: FindOrderOptions) => Promise<OrderResponse[]>`*
+`findOrder` takes a single options property defined as:
+
+```ts
+FindOrderOptions {
+	fromDate: Date
+	toDate: Date
+	status?: number
+	productId?: number
+	orderId?: number
+	affiliateId?: string
+	customerId?: number
+	shipped?: boolean
+	address?: string
+	address2?: string
+	firstName?: string
+	lastName?: string
+	subId?: string
+	email?: string
+	city?: string
+	zip?: string
+	phone?: string
+	state?: string
+	country?: string
+	transactionId?: string
+	rma?: string
+	ip?: string
+	depth?: number
+	bin?: number,
+	lastFour: number,
+	orderView?: boolean
+}
+```
+and returns a promise resolving to an array of `OrderResponse`'s similar to the example above.
+
+### *`getOrder(orderId: string | number) => Promise<OrderResponse[]>`*
+`getOrder` simply takes an order id and returns the appropriate `OrderResponse` similar to the above examples.
+
+### *`getProvinces(country: string) => Promise<Subdivision[]>`*
+`getProvinces` takes a string representing a country abbreviation and returns a promise resolving to an array of `Subdivision`, defined as:
+
+``` ts
+Subdivision {
+	id: number
+	name: string
+	provinceAbbreviation: string
+	countryAbbreviation: string
+}
+```
+
+### *`getTaxForProduct(productId: number, country: string) => Promise<{ taxAmount: number }>`*
 
 ## Logger
 The exported function also takes an optional logger function. This is called throughout the req->res cycle and hands back various data points for you to log as you please. The shape of the object returned via this callback is:
