@@ -21,8 +21,23 @@ const NOOP = function () { /* do nothing */ };
  *    info?: string
  * }} Log
  * @typedef {function(Log): void} Logger
- * @typedef {{ url?: string, apiKey: string }} Config
+ * @typedef {{ url?: string, apiKey?: string }} Config
  * @typedef {{ backupResponse: string } & FetchError } CustomFetchError
+ */
+
+/**
+ * @typedef {{
+		productId: number
+		quantity?: number
+		price: number
+		productName: string
+		currencyInIso4217Format?: string
+		currency?: string
+		nextDate?: Date | null
+		frequency?: number | null
+		rebillDiscount?: number | null
+		nextProductId?: number | null
+	}} OrderProduct
  */
 
 /**
@@ -64,14 +79,7 @@ const NOOP = function () { /* do nothing */ };
 		shippingPrice: number,
 		total: number,
 		depth: number,
-		orderProducts: Array<{
-			productId: number
-			quantity: number
-			price: number
-			productName: string
-			currencyInIso4217Format: string
-			currency: string
-		}>
+		orderProducts: Array<OrderProduct>
 	}} OrderResponse
   */
 
@@ -144,15 +152,19 @@ function transformKeys(obj, transform) {
 }
 
 /**
- * @param {{ config: Config, logger?: Logger }} module.exports.$0
+ * @param {{ config?: Config, logger?: Logger }} module.exports.$0
  */
-module.exports = ({ config, logger = NOOP }) => {
+module.exports = ({ config = {}, logger = NOOP }) => {
 	const { url = 'https://app.continuitycrm.com/api/', apiKey } = config;
 
 	const HEADERS = {
 		'Content-Type': 'application/json',
-		APIKey: apiKey,
+		APIKey: apiKey || process.env.CCRM_API_KEY,
 	};
+
+	if (!HEADERS.APIKey) {
+		throw new Error('must either provide an `apiKey` via passed config or the CCRM_API_KEY env var');
+	}
 
 	/**
      * @param {fetch.Response} response
@@ -221,13 +233,13 @@ module.exports = ({ config, logger = NOOP }) => {
 	const getJSON = (endpoint, data = {}, method = 'POST') => {
 		const opts = {
 			method,
-			body: method.toUpperCase() === 'POST' ? JSON.stringify(data) : undefined,
+			body: method.toUpperCase() !== 'GET' ? JSON.stringify(data) : undefined,
 			headers: HEADERS,
 		};
 
 		const queryparams = method.toUpperCase() === 'GET' ? `?${qs.stringify(data)}` : '';
 
-		debug('request: ', data, opts);
+		debug('request:\n', 'endpoint :', endpoint, '\n', 'data: ', data, '\n', 'opts: ', opts, '\n', 'query: ', queryparams);
 
 		const ccrmTimer = startTimer();
 		return Promise.try(() => {
@@ -261,12 +273,12 @@ module.exports = ({ config, logger = NOOP }) => {
 			if (typeof orderData === 'object') {
 				if (Array.isArray(orderData)) {
 					if (typeof orderData[0] === 'object') {
-						return orderData.map(order => camelcaseKeys(order, {deep: true}));
+						return orderData.map(order => camelcaseKeys(order, { deep: true }));
 					} else {
 						return orderData;
 					}
 				} else {
-					return camelcaseKeys(orderData, {deep: true});
+					return camelcaseKeys(orderData, { deep: true });
 				}
 			} else {
 				return orderData;
@@ -351,11 +363,29 @@ module.exports = ({ config, logger = NOOP }) => {
         expMonth: number
 		expYear: number
 		shippingMethodId: number
-     * }} PaymentData
+	 * }} PaymentData
+	 *
+	 * @typedef {{
+		orderId: number
+		prepaid: boolean
+		total: number
+		shippingPrice: number
+		descriptor: string
+		customerServiceNumber: string
+		subTotal: number
+		tax: number
+		orderProducts: Array<{
+			productId: number
+			price: number
+			productName: string
+		}>
+		}} OrderResponse
 
      * @param {CustomerData} customer
      * @param {ProductData} products
      * @param {PaymentData} payment
+	 *
+	 * @returns {Promise<OrderResponse>}
      */
 	const newOrder = (customer, products, payment) => {
 		const endpoint = 'orders';
@@ -434,7 +464,7 @@ module.exports = ({ config, logger = NOOP }) => {
 		ip?: string
 		depth?: number
 		bin?: number,
-		lastFour: number,
+		lastFour?: number,
 		orderView?: boolean
 	 * }} options
 	 * @returns {Promise<OrderResponse[]>}
@@ -443,7 +473,6 @@ module.exports = ({ config, logger = NOOP }) => {
 		const endpoint = 'orders/find';
 		return getJSON(endpoint, {
 			...options,
-			depth: 0,
 			toDate: options.toDate.toISOString(),
 			fromDate: options.fromDate.toISOString(),
 		}, 'GET');
@@ -452,6 +481,28 @@ module.exports = ({ config, logger = NOOP }) => {
 	const getOrder = (orderId) => {
 		const endpoint = `orders/${orderId}`;
 		return getJSON(endpoint, null, 'GET');
+	};
+
+	/**
+	 *
+	 * @param {string | number} orderId
+	 * @param {{ orderProducts?: Array<OrderProduct> | {} }} [data]
+	 */
+	const cancelSubscription = (orderId, data) => {
+		const endpoint = `orders/cancel/${orderId}`;
+
+		return getJSON(endpoint, data);
+	};
+
+	/**
+	 *
+	 * @param {string | number} orderId
+	 * @param {Array<OrderProduct>} data
+	 */
+	const patchOrderProducts = (orderId, data = []) => {
+		const endpoint = `orders/update/${orderId}`;
+
+		return getJSON(endpoint, data, 'PATCH');
 	};
 
 	/**
@@ -479,5 +530,16 @@ module.exports = ({ config, logger = NOOP }) => {
 		return getJSON(endpoint, { ProductId: productId, ShippingCountry: shippingCountry.toUpperCase() }, 'GET');
 	};
 
-	return { newPartial, newOrder, newOrderOnPartial, upsellOnOrder, findOrder, getOrder, getProvinces, getTaxForProduct };
+	return {
+		newPartial,
+		newOrder,
+		newOrderOnPartial,
+		upsellOnOrder,
+		findOrder,
+		getOrder,
+		cancelSubscription,
+		patchOrderProducts,
+		getProvinces,
+		getTaxForProduct
+	};
 };

@@ -7,7 +7,7 @@ Install from npm:
 npm install --save ccrm
 ```
 
-The export of this package is a function that takes a single argument of an object with a required `config` prop and an optional `logger` prop. The config is defined as: `{ url?: string, apiKey: string }`. The `url` is optional in the sense that the default cloud hosted instance of CCRM does not require it. The API key must be provided. Example:
+The export of this package is a function that takes a single argument of an object with a (usually) required `config` prop and an optional `logger` prop. The config is defined as: `{ url?: string, apiKey: string }`. The `url` is optional in the sense that the default cloud hosted instance of CCRM does not require it. The API key must be provided, but for scenarios where it can't be passed in programatically, the `CCRM_API_KEY` env var can be used instead. Example:
 
 ```js
 const CCRM = require('ccrm');
